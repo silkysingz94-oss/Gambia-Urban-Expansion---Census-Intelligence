@@ -1,0 +1,1157 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GBoS GEOAI | Gambia Urban Energy Intelligence</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@turf/turf@7.2.0/turf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+
+<style>
+:root {
+  --bg:#08111e;
+  --panel:#101d2d;
+  --panel2:#142438;
+  --line:#26394f;
+  --text:#e8f0fa;
+  --muted:#91a5bc;
+  --cyan:#35c6d8;
+  --green:#48cf9b;
+  --orange:#f0a54a;
+  --red:#ef7373;
+}
+* {box-sizing:border-box}
+html,body {height:100%;margin:0;background:var(--bg);color:var(--text);
+  font-family:Inter,Segoe UI,Arial,sans-serif;overflow:hidden}
+button,select,input {font:inherit}
+button {cursor:pointer}
+header {
+  height:70px;display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px;background:#0b1726;border-bottom:1px solid var(--line);
+}
+.brand {display:flex;align-items:center;gap:12px}
+.brand-mark {
+  width:38px;height:38px;border-radius:10px;background:#153b4b;
+  display:grid;place-items:center;color:var(--cyan);font-weight:900;font-size:20px;
+}
+.brand h1 {font-size:16px;letter-spacing:.8px;margin:0}
+.brand p {font-size:10px;color:var(--muted);margin:4px 0 0;letter-spacing:1.5px}
+.header-right {text-align:right;font-size:10px;color:var(--muted);line-height:1.7}
+.header-right strong {color:var(--green);font-weight:700}
+.layout {
+  height:calc(100% - 70px);
+  display:grid;
+  grid-template-columns:310px minmax(300px,1fr) 330px;
+  gap:1px;background:var(--line);
+}
+.panel {background:var(--bg);min-height:0;overflow-y:auto;scrollbar-width:thin;
+  scrollbar-color:#354b62 transparent}
+.left,.right {padding:14px}
+.map-panel {position:relative;min-width:0;min-height:0;overflow:hidden;background:#101b29}
+#map {position:absolute;inset:0;width:100%;height:100%;background:#152335}
+.map-overlay {
+  position:absolute;z-index:500;top:12px;left:12px;max-width:calc(100% - 24px);
+  background:#0b1726eF;border:1px solid #31465d;border-radius:9px;padding:10px 12px;
+  font-size:11px;pointer-events:none;box-shadow:0 4px 18px #0005;
+}
+.map-overlay strong {display:block;font-size:12px;margin-bottom:4px}
+.map-legend {
+  position:absolute;z-index:500;bottom:18px;left:12px;background:#0b1726ed;
+  border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:10px;
+}
+.legend-line {display:flex;align-items:center;gap:7px;margin:5px 0;color:#c7d5e5}
+.swatch {width:10px;height:10px;border-radius:3px;display:inline-block}
+.section {
+  background:var(--panel);border:1px solid var(--line);border-radius:10px;
+  margin-bottom:12px;overflow:hidden;
+}
+.section-head {
+  padding:11px 12px;border-bottom:1px solid var(--line);font-size:10px;
+  font-weight:800;letter-spacing:1.4px;color:var(--cyan);
+}
+.section-body {padding:12px}
+.field {margin-bottom:11px}
+.field:last-child {margin-bottom:0}
+label {display:block;font-size:10px;color:var(--muted);margin-bottom:6px}
+select,input[type=number] {
+  width:100%;background:#0a1624;border:1px solid #30455d;color:var(--text);
+  padding:9px;border-radius:6px;outline:none;font-size:11px;
+}
+select:focus,input:focus {border-color:var(--cyan)}
+.btn-row {display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:10px}
+.btn {
+  border:1px solid #35516a;background:#172a40;color:var(--text);
+  border-radius:6px;padding:10px 8px;font-size:10px;font-weight:800;
+  letter-spacing:.5px;
+}
+.btn.primary {background:#087f91;border-color:#159caf;color:white}
+.btn.green {background:#146b50;border-color:#248d6c;color:white}
+.btn.orange {background:#67451f;border-color:#a97838;color:white}
+.btn.danger {background:#48262b;border-color:#82424a;color:#ffdede}
+.btn:disabled {opacity:.45;cursor:not-allowed}
+.btn.full {width:100%;margin-top:7px}
+.small-note {font-size:10px;line-height:1.55;color:var(--muted);margin-top:8px}
+.status-list {display:grid;gap:8px}
+.status-row {display:flex;justify-content:space-between;align-items:center;gap:8px;
+  font-size:10px;padding-bottom:7px;border-bottom:1px solid #223449}
+.status-row:last-child {border:0;padding-bottom:0}
+.status {font-size:9px;font-weight:800;padding:4px 6px;border-radius:4px;
+  background:#253448;color:#b9c7d8;white-space:nowrap}
+.status.ok {background:#123c32;color:#6fe0b4}
+.status.bad {background:#48272b;color:#ff9999}
+.status.wait {background:#42351f;color:#ffd18a}
+.status.info {background:#17374a;color:#81d7ed}
+.kpi-grid {display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.kpi {background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:11px}
+.kpi .name {font-size:9px;color:var(--muted);line-height:1.4;min-height:24px}
+.kpi .value {font-size:19px;font-weight:800;margin-top:6px;letter-spacing:-.4px}
+.kpi .unit {font-size:9px;color:var(--muted);margin-top:3px}
+.chart-card {background:var(--panel);border:1px solid var(--line);border-radius:9px;
+  padding:11px;margin-bottom:11px}
+.chart-title {font-size:10px;font-weight:800;letter-spacing:.7px;margin-bottom:9px}
+.chart-wrap {height:175px;position:relative}
+.chart-wrap.tall {height:205px}
+.tag {display:inline-block;font-size:9px;padding:4px 6px;border-radius:4px;
+  background:#17374a;color:#8bdff0;margin:3px 3px 0 0}
+.footer {font-size:9px;color:#8195aa;line-height:1.7;padding:12px 4px 18px}
+.footer strong {color:#d5e4f4}
+.source-link {color:#78cfe2;text-decoration:none;display:block;font-size:10px;
+  margin:7px 0;overflow-wrap:anywhere}
+.source-link:hover {text-decoration:underline}
+.progress {height:4px;background:#203248;border-radius:5px;overflow:hidden;margin-top:8px}
+.progress>div {height:100%;width:0;background:var(--cyan);transition:width .2s}
+.notice {font-size:10px;line-height:1.55;border-left:3px solid var(--orange);
+  background:#29251e;padding:9px;margin-top:9px;color:#e7d5b7}
+.notice.good {border-color:var(--green);background:#142b28;color:#b9e7d7}
+.notice.error {border-color:var(--red);background:#2d2025;color:#f1b8b8}
+hr {border:0;border-top:1px solid var(--line);margin:12px 0}
+.leaflet-control-attribution {font-size:9px!important}
+@media(max-width:950px) {
+  .layout {grid-template-columns:270px minmax(250px,1fr) 280px}
+}
+@media(max-width:700px) {
+  html,body {overflow:auto}
+  header {height:auto;min-height:65px;padding:10px}
+  .header-right {display:none}
+  .layout {height:auto;min-height:calc(100% - 65px);display:flex;flex-direction:column}
+  .panel {overflow:visible}
+  .map-panel {height:55vh;min-height:360px;order:0}
+  .left {order:1}.right {order:2}
+}
+</style>
+</head>
+
+<body>
+<header>
+  <div class="brand">
+    <div class="brand-mark">G</div>
+    <div>
+      <h1>GBoS GEOAI | GAMBIA URBAN ENERGY INTELLIGENCE</h1>
+      <p>POPULATION • BUILDINGS • INFRASTRUCTURE • ELECTRICITY • URBAN ENERGY SCENARIOS</p>
+    </div>
+  </div>
+  <div class="header-right">
+    <strong id="headerStatus">INITIALISING DATA SERVICES</strong><br>
+    GIS / CARTOGRAPHY UNIT
+  </div>
+</header>
+
+<div class="layout">
+  <!-- LEFT CONTROLS -->
+  <aside class="panel left">
+    <div class="section">
+      <div class="section-head">01 / ADMINISTRATIVE AREA</div>
+      <div class="section-body">
+        <div class="field">
+          <label for="regionSelect">REGION / LGA</label>
+          <select id="regionSelect">
+            <option value="">Loading regions...</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="districtSelect">DISTRICT</label>
+          <select id="districtSelect" disabled>
+            <option value="">Select a region first</option>
+          </select>
+        </div>
+        <div class="btn-row">
+          <button class="btn primary" id="runBtn">RUN ANALYSIS</button>
+          <button class="btn" id="resetBtn">RESET</button>
+        </div>
+        <div class="small-note" id="areaMessage">Loading administrative boundaries...</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">02 / POPULATION DATA</div>
+      <div class="section-body">
+        <div class="field">
+          <label for="yearSelect">WORLDPOP REFERENCE YEAR</label>
+          <select id="yearSelect">
+            <option>2030</option><option>2029</option><option>2028</option>
+            <option>2027</option><option>2026</option><option selected>2025</option>
+            <option>2024</option><option>2023</option><option>2022</option>
+            <option>2021</option><option>2020</option><option>2019</option>
+            <option>2018</option><option>2017</option><option>2016</option>
+            <option>2015</option>
+          </select>
+        </div>
+        <div class="small-note">
+          Population is requested directly from the WorldPop API using the selected
+          administrative polygon. Results depend on API availability and its supported
+          reference years.
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">03 / HOUSEHOLD ESTIMATION</div>
+      <div class="section-body">
+        <div class="field">
+          <label for="hhSize">FALLBACK AVERAGE HOUSEHOLD SIZE</label>
+          <input type="number" id="hhSize" min="1" max="30" step="0.1" value="9.2">
+        </div>
+        <div class="small-note">
+          Uses the GBoS 2023 Statistical Abstract's LGA mean household sizes when the
+          selected region can be identified. Household totals are calculated estimates,
+          not observed household counts.
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">04 / ENERGY SCENARIO ASSUMPTIONS</div>
+      <div class="section-body">
+        <div class="field">
+          <label for="usePerHH">ELECTRICITY USE (kWh / HOUSEHOLD / DAY)</label>
+          <input type="number" id="usePerHH" value="2.5" min="0" step="0.1">
+        </div>
+        <div class="field">
+          <label for="commercialShare">COMMERCIAL / PUBLIC DEMAND (%)</label>
+          <input type="number" id="commercialShare" value="25" min="0" max="300">
+        </div>
+        <div class="field">
+          <label for="electrification">ELECTRIFICATION COVERAGE (%)</label>
+          <input type="number" id="electrification" value="75" min="0" max="100">
+        </div>
+        <div class="field">
+          <label for="efficiency">ENERGY EFFICIENCY IMPROVEMENT (%)</label>
+          <input type="number" id="efficiency" value="20" min="0" max="90">
+        </div>
+        <div class="field">
+          <label for="solarCoverage">HOUSEHOLDS WITH ROOFTOP SOLAR (%)</label>
+          <input type="number" id="solarCoverage" value="40" min="0" max="100">
+        </div>
+        <div class="field">
+          <label for="pvCapacity">PV CAPACITY PER PARTICIPATING HOUSEHOLD (kWp)</label>
+          <input type="number" id="pvCapacity" value="2.5" min="0" step="0.1">
+        </div>
+        <div class="field">
+          <label for="solarYield">SOLAR GENERATION YIELD (kWh / kWp / DAY)</label>
+          <input type="number" id="solarYield" value="4.5" min="0" step="0.1">
+        </div>
+        <div class="field">
+          <label for="batteryHours">BATTERY AUTONOMY (HOURS)</label>
+          <input type="number" id="batteryHours" value="6" min="0" step="0.5">
+        </div>
+        <button class="btn green full" id="scenarioBtn">RECALCULATE SCENARIO</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">05 / ONLINE DATA CONNECTIONS</div>
+      <div class="section-body">
+        <div class="status-list">
+          <div class="status-row"><span>National boundary</span><span id="sNational" class="status wait">Loading</span></div>
+          <div class="status-row"><span>Regional boundaries</span><span id="sRegions" class="status wait">Loading</span></div>
+          <div class="status-row"><span>District boundaries</span><span id="sDistricts" class="status wait">Loading</span></div>
+          <div class="status-row"><span>WorldPop population API</span><span id="sWorldPop" class="status">Waiting</span></div>
+          <div class="status-row"><span>GBoS household estimate</span><span id="sHouseholds" class="status">Waiting</span></div>
+          <div class="status-row"><span>OSM buildings</span><span id="sBuildings" class="status">Not requested</span></div>
+          <div class="status-row"><span>OSM roads</span><span id="sRoads" class="status">Not requested</span></div>
+          <div class="status-row"><span>PURA electricity sales</span><span class="status info">2024 national sales</span></div>
+        </div>
+        <hr>
+        <button class="btn full" id="buildingsBtn">LOAD OSM BUILDINGS</button>
+        <button class="btn full" id="roadsBtn">LOAD OSM ROADS</button>
+        <div class="small-note">
+          OSM requests are limited to a small sample around the selected area to avoid
+          overloading public map servers. Coverage is not a complete national inventory.
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">06 / EXPORTS</div>
+      <div class="section-body">
+        <div class="btn-row">
+          <button class="btn" id="csvBtn">EXPORT CSV</button>
+          <button class="btn" id="jsonBtn">EXPORT JSON</button>
+        </div>
+        <button class="btn full" id="geojsonBtn">EXPORT SELECTED AREA GEOJSON</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">07 / DATA SOURCES</div>
+      <div class="section-body">
+        <a class="source-link" href="https://api.worldpop.org/v3/documentation" target="_blank">WorldPop API documentation</a>
+        <a class="source-link" href="https://www.gbosdata.org/downloads-file/541-the-2023-gambia-statistical-abstract" target="_blank">GBoS 2023 Statistical Abstract</a>
+        <a class="source-link" href="https://pura.gm/wp-content/uploads/2026/03/ANNUAL-REPORT-2024.pdf" target="_blank">PURA Annual Report 2024</a>
+        <a class="source-link" href="https://www.openstreetmap.org/" target="_blank">OpenStreetMap</a>
+        <a class="source-link" href="https://www.geoboundaries.org/" target="_blank">geoBoundaries administrative data</a>
+        <div class="small-note">Boundary data attribution: geoBoundaries. OSM data © OpenStreetMap contributors.</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- FIXED MAP -->
+  <main class="map-panel">
+    <div id="map"></div>
+    <div class="map-overlay">
+      <strong>GAMBIA URBAN ENERGY INTELLIGENCE</strong>
+      <span id="mapAreaText">National overview • The Gambia</span>
+    </div>
+    <div class="map-legend">
+      <strong style="font-size:10px">MAP LAYERS</strong>
+      <div class="legend-line"><span class="swatch" style="background:#36c9d8"></span>Administrative boundary</div>
+      <div class="legend-line"><span class="swatch" style="background:#f4b34f"></span>OSM buildings</div>
+      <div class="legend-line"><span class="swatch" style="background:#f06b66"></span>OSM roads</div>
+      <div class="legend-line"><span class="swatch" style="background:#4acb95"></span>National boundary</div>
+    </div>
+  </main>
+
+  <!-- RIGHT ANALYTICS -->
+  <aside class="panel right">
+    <div class="section">
+      <div class="section-head">08 / SPATIAL ANALYTICS</div>
+      <div class="section-body">
+        <div class="small-note" id="analysisStatus">Select a region or district and run the analysis.</div>
+        <div class="progress"><div id="progressBar"></div></div>
+      </div>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi"><div class="name">MODELLED POPULATION</div><div class="value" id="kPopulation">—</div><div class="unit">WorldPop persons</div></div>
+      <div class="kpi"><div class="name">ESTIMATED HOUSEHOLDS</div><div class="value" id="kHouseholds">—</div><div class="unit">Calculated estimate</div></div>
+      <div class="kpi"><div class="name">OSM BUILDINGS</div><div class="value" id="kBuildings">—</div><div class="unit">Sampled mapped features</div></div>
+      <div class="kpi"><div class="name">OSM ROAD LENGTH</div><div class="value" id="kRoads">—</div><div class="unit">Sampled kilometres</div></div>
+      <div class="kpi"><div class="name">AREA</div><div class="value" id="kArea">—</div><div class="unit">Square kilometres</div></div>
+      <div class="kpi"><div class="name">POPULATION DENSITY</div><div class="value" id="kDensity">—</div><div class="unit">Persons / km²</div></div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">09 / ELECTRICITY BENCHMARK</div>
+      <div class="section-body">
+        <div class="kpi" style="margin:0">
+          <div class="name">PURA REPORTED QUANTITY SOLD — 2024</div>
+          <div class="value">531.70M</div>
+          <div class="unit">kWh • National reported sales</div>
+        </div>
+        <div class="small-note">
+          2023 reported quantity sold: 201.93 million kWh. These are national
+          benchmarks, not district-level NAWEC consumption measurements.
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">10 / URBAN ENERGY SCENARIO</div>
+      <div class="section-body">
+        <div class="kpi-grid" style="margin:0">
+          <div class="kpi"><div class="name">DAILY ELECTRICITY DEMAND</div><div class="value" id="kDaily">—</div><div class="unit">kWh / day • modelled</div></div>
+          <div class="kpi"><div class="name">ANNUAL ELECTRICITY DEMAND</div><div class="value" id="kAnnual">—</div><div class="unit">MWh / year • modelled</div></div>
+          <div class="kpi"><div class="name">ROOFTOP PV CAPACITY</div><div class="value" id="kPV">—</div><div class="unit">kWp • scenario</div></div>
+          <div class="kpi"><div class="name">DAILY SOLAR GENERATION</div><div class="value" id="kSolar">—</div><div class="unit">kWh / day • scenario</div></div>
+          <div class="kpi"><div class="name">BATTERY STORAGE</div><div class="value" id="kBattery">—</div><div class="unit">kWh • nominal scenario</div></div>
+          <div class="kpi"><div class="name">SOLAR SHARE OF DEMAND</div><div class="value" id="kSolarShare">—</div><div class="unit">Scenario ratio</div></div>
+        </div>
+        <div class="notice">
+          Scenario outputs are planning estimates based on editable assumptions. They
+          are not measured NAWEC load, customer connections or electricity consumption.
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">DAILY DEMAND VS ROOFTOP SOLAR</div>
+      <div class="chart-wrap"><canvas id="energyChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">MODELLED DEMAND COMPOSITION</div>
+      <div class="chart-wrap"><canvas id="compositionChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">POPULATION AND HOUSEHOLD ESTIMATES</div>
+      <div class="chart-wrap"><canvas id="populationChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">ENERGY SCENARIO INDICATORS</div>
+      <div class="chart-wrap"><canvas id="indicatorChart"></canvas></div>
+    </div>
+
+    <div class="footer">
+      <strong>Produced by Ansu Singhateh</strong><br>
+      GIS Analyst | GIS / Cartography Unit | Gambia Bureau of Statistics<br>
+      GBoS GEOAI • Research and educational use
+    </div>
+  </aside>
+</div>
+
+<script>
+"use strict";
+
+/* ============================================================
+   GBoS GEOAI — GAMBIA URBAN ENERGY INTELLIGENCE
+   Administrative boundaries: geoBoundaries GitHub release
+   Population: WorldPop API
+   Households: GBoS LGA mean household-size estimates
+   Buildings and roads: optional small-area OSM map API request
+   ============================================================ */
+
+const $ = id => document.getElementById(id);
+
+const state = {
+  national:null,
+  regions:null,
+  districts:null,
+  selectedRegion:null,
+  selectedDistrict:null,
+  selectedArea:null,
+  population:null,
+  households:null,
+  householdSize:null,
+  areaKm2:null,
+  buildings:[],
+  roads:[],
+  buildingLayer:null,
+  roadLayer:null,
+  boundaryLayer:null,
+  nationalLayer:null,
+  charts:{},
+  lastAnalysis:null
+};
+
+const boundaryURLs = {
+  national:[
+    "https://raw.githubusercontent.com/wmgeolab/geoBoundaries/9469f09/releaseData/gbOpen/GMB/ADM0/geoBoundaries-GMB-ADM0_simplified.geojson",
+    "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/GMB/ADM0/geoBoundaries-GMB-ADM0_simplified.geojson"
+  ],
+  regions:[
+    "https://raw.githubusercontent.com/wmgeolab/geoBoundaries/9469f09/releaseData/gbOpen/GMB/ADM1/geoBoundaries-GMB-ADM1_simplified.geojson",
+    "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/GMB/ADM1/geoBoundaries-GMB-ADM1_simplified.geojson"
+  ],
+  districts:[
+    "https://raw.githubusercontent.com/wmgeolab/geoBoundaries/9469f09/releaseData/gbOpen/GMB/ADM2/geoBoundaries-GMB-ADM2_simplified.geojson",
+    "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/GMB/ADM2/geoBoundaries-GMB-ADM2_simplified.geojson"
+  ]
+};
+
+/* GBoS 2023 Statistical Abstract — mean household size by LGA.
+   These values are used as household-estimation parameters. */
+const lgaHouseholdSizes = {
+  "banjul":6.0,
+  "kanifing":6.7,
+  "brikama":9.3,
+  "mansakonko":8.8,
+  "kerewan":11.0,
+  "kuntaur":11.9,
+  "janjanbureh":10.0,
+  "basse":12.3
+};
+
+const puraSales = {
+  2023:201933047,
+  2024:531700908.42
+};
+
+function setStatus(id,text,type="") {
+  const el=$(id);
+  el.textContent=text;
+  el.className="status "+type;
+}
+function setHeader(text) {$("headerStatus").textContent=text}
+function setProgress(v) {$("progressBar").style.width=Math.max(0,Math.min(100,v))+"%"}
+function fmt(n,d=0) {
+  if(n===null||n===undefined||!Number.isFinite(Number(n))) return "—";
+  return Number(n).toLocaleString("en-US",{maximumFractionDigits:d,minimumFractionDigits:d});
+}
+function normalise(s) {
+  return String(s||"").toLowerCase().normalize("NFD")
+    .replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]/g,"");
+}
+function featureCollection(x) {
+  if(!x) throw new Error("Empty GeoJSON response");
+  if(x.type==="FeatureCollection") return x;
+  if(x.type==="Feature") return {type:"FeatureCollection",features:[x]};
+  if(Array.isArray(x)) return {type:"FeatureCollection",features:x};
+  throw new Error("Response is not a valid GeoJSON FeatureCollection");
+}
+function propValues(feature) {
+  return feature && feature.properties ? feature.properties : {};
+}
+function firstProp(props,keys) {
+  const entries=Object.entries(props||{});
+  for(const wanted of keys) {
+    const key=entries.find(([k,v])=>normalise(k)===normalise(wanted) && v!==null && v!==undefined && String(v).trim()!=="");
+    if(key) return key[1];
+  }
+  return null;
+}
+function featureName(f,level) {
+  const p=propValues(f);
+  const candidates=level==="district"
+    ? ["shapeName","name","district","district_name","ADM2_EN","ADM2_NAME","NAME_2","name_2","admin2Name","admin2"]
+    : ["shapeName","name","lga","lga_name","region","region_name","ADM1_EN","ADM1_NAME","NAME_1","name_1","admin1Name","admin1"];
+  const value=firstProp(p,candidates);
+  if(value!==null) return String(value);
+  const vals=Object.values(p).filter(v=>typeof v==="string"&&v.trim());
+  return vals[0]||"Unnamed area";
+}
+function getParentName(f) {
+  const p=propValues(f);
+  return firstProp(p,[
+    "shapeGroup","parent","parentName","lga","lga_name","region",
+    "region_name","ADM1_EN","ADM1_NAME","NAME_1","name_1",
+    "admin1Name","admin1","shapeGroupName"
+  ]);
+}
+async function fetchJSON(url,timeout=25000) {
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),timeout);
+  try {
+    const res=await fetch(url,{signal:controller.signal,cache:"force-cache"});
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    return await res.json();
+  } finally {clearTimeout(timer)}
+}
+async function loadBoundary(level) {
+  let lastError=null;
+  for(const url of boundaryURLs[level]) {
+    try {
+      const data=featureCollection(await fetchJSON(url));
+      if(!data.features.length) throw new Error("No boundary features returned");
+      return data;
+    } catch(e) {lastError=e}
+  }
+  throw lastError||new Error("Boundary download failed");
+}
+
+/* ---------------- MAP ---------------- */
+const map=L.map("map",{zoomControl:true,preferCanvas:true}).setView([13.45,-15.55],8);
+
+L.tileLayer(
+  "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+  {maxZoom:19,attribution:"Tiles © Esri"}
+).addTo(map);
+
+state.boundaryLayer=L.geoJSON(null,{
+  style:{color:"#35c6d8",weight:2.4,fillColor:"#35c6d8",fillOpacity:.06}
+}).addTo(map);
+state.nationalLayer=L.geoJSON(null,{
+  style:{color:"#48cf9b",weight:2,fillOpacity:0}
+}).addTo(map);
+
+function fitFeature(f) {
+  if(!f) return;
+  try {
+    const b=L.geoJSON(f).getBounds();
+    if(b.isValid()) map.fitBounds(b,{padding:[25,25],maxZoom:12});
+  } catch(e) {}
+}
+function showSelectedBoundary() {
+  state.boundaryLayer.clearLayers();
+  const f=state.selectedArea;
+  if(f) {
+    state.boundaryLayer.addData(f);
+    fitFeature(f);
+  }
+  const name=state.selectedDistrict
+    ? featureName(state.selectedDistrict,"district")
+    : state.selectedRegion ? featureName(state.selectedRegion,"region") : "National overview";
+  $("mapAreaText").textContent=name+" • The Gambia";
+}
+function selectArea() {
+  const r=state.selectedRegion;
+  const d=state.selectedDistrict;
+  state.selectedArea=d||r||state.national?.features?.[0]||null;
+  showSelectedBoundary();
+  if(state.selectedArea) {
+    try {state.areaKm2=turf.area(state.selectedArea)/1e6}
+    catch(e) {state.areaKm2=null}
+    $("kArea").textContent=state.areaKm2?fmt(state.areaKm2,1):"—";
+  }
+}
+
+/* ---------------- ADMIN BOUNDARIES ---------------- */
+function populateRegions() {
+  const sel=$("regionSelect");
+  sel.innerHTML='<option value="">Select region / LGA</option>';
+  const features=[...state.regions.features].sort((a,b)=>
+    featureName(a,"region").localeCompare(featureName(b,"region")));
+  features.forEach((f,i)=>{
+    const o=document.createElement("option");
+    o.value=String(i);
+    o.textContent=featureName(f,"region");
+    sel.appendChild(o);
+  });
+}
+function districtsForRegion(region) {
+  if(!region) return [];
+  const regionName=featureName(region,"region");
+  const target=normalise(regionName);
+  const matched=state.districts.features.filter(f=>{
+    const parent=normalise(getParentName(f));
+    if(parent && (parent===target || parent.includes(target) || target.includes(parent))) return true;
+    try {
+      const c=turf.centroid(f);
+      return turf.booleanPointInPolygon(c,region);
+    } catch(e) {return false}
+  });
+  return matched;
+}
+function populateDistricts() {
+  const sel=$("districtSelect");
+  sel.innerHTML='<option value="">All districts in selected region</option>';
+  if(!state.selectedRegion) {
+    sel.disabled=true;
+    sel.innerHTML='<option value="">Select a region first</option>';
+    return;
+  }
+  const features=districtsForRegion(state.selectedRegion);
+  features.sort((a,b)=>featureName(a,"district").localeCompare(featureName(b,"district")));
+  features.forEach((f,i)=>{
+    const o=document.createElement("option");
+    o.value=String(i);
+    o.textContent=featureName(f,"district");
+    sel.appendChild(o);
+  });
+  sel.disabled=false;
+  if(!features.length) {
+    $("areaMessage").textContent="No district features matched this region. The region boundary can still be analysed.";
+  }
+}
+async function initialiseBoundaries() {
+  setHeader("LOADING ADMINISTRATIVE DATA");
+  $("areaMessage").textContent="Connecting to the boundary repository...";
+  const jobs=[
+    loadBoundary("national").then(x=>{
+      state.national=x;
+      state.nationalLayer.addData(x);
+      setStatus("sNational","Loaded","ok");
+    }).catch(e=>setStatus("sNational","Failed","bad")),
+    loadBoundary("regions").then(x=>{
+      state.regions=x;
+      populateRegions();
+      setStatus("sRegions","Loaded","ok");
+    }).catch(e=>setStatus("sRegions","Failed","bad")),
+    loadBoundary("districts").then(x=>{
+      state.districts=x;
+      setStatus("sDistricts","Loaded","ok");
+    }).catch(e=>setStatus("sDistricts","Failed","bad"))
+  ];
+  await Promise.allSettled(jobs);
+
+  if(state.national) fitFeature(state.national.features[0]);
+  if(state.regions) {
+    $("areaMessage").textContent="Administrative boundaries loaded. Select a region or LGA.";
+    setHeader("BOUNDARIES LOADED");
+  } else {
+    $("areaMessage").textContent="Boundary download failed. Check your internet connection or open the boundary source links below.";
+    setHeader("BOUNDARY SERVICE UNAVAILABLE");
+  }
+}
+
+/* ---------------- HOUSEHOLD ESTIMATION ---------------- */
+function householdSizeForArea(fallback) {
+  const name=state.selectedRegion?featureName(state.selectedRegion,"region"):"";
+  const key=normalise(name);
+  return lgaHouseholdSizes[key]||fallback;
+}
+
+/* ---------------- WORLDPOP API ---------------- */
+async function requestWorldPop(feature,year) {
+  const endpoint="https://api.worldpop.org/v3/population";
+  let geometryFeature=feature;
+  try {
+    geometryFeature=turf.simplify(feature,{tolerance:0.00015,highQuality:false,mutate:false});
+  } catch(e) {}
+
+  const response=await fetch(endpoint,{
+    method:"POST",
+    headers:{"Content-Type":"application/json","Accept":"application/json"},
+    body:JSON.stringify({geojson:geometryFeature,year:Number(year)})
+  });
+  if(!response.ok) throw new Error("WorldPop HTTP "+response.status);
+  const data=await response.json();
+
+  // Accommodate API response variations.
+  const candidates=[
+    data.total_population,
+    data.population,
+    data.results?.total_population,
+    data.data?.total_population,
+    data.data?.population,
+    data.result?.total_population
+  ];
+  const population=candidates.find(v=>v!==undefined&&v!==null&&Number.isFinite(Number(v)));
+  if(population===undefined) {
+    throw new Error(data.error||data.message||"WorldPop response did not contain a population total");
+  }
+  return {
+    population:Number(population),
+    raw:data,
+    year:Number(data.data_year||data.year||year),
+    source:data.data_source||"WorldPop API"
+  };
+}
+
+/* ---------------- ENERGY SCENARIO ---------------- */
+function getNumber(id,defaultValue=0) {
+  const v=Number($(id).value);
+  return Number.isFinite(v)?v:defaultValue;
+}
+function scenarioValues() {
+  const population=state.population;
+  const households=state.households;
+  if(!Number.isFinite(population)||!Number.isFinite(households)) return null;
+
+  const connectedHH=households*getNumber("electrification",75)/100;
+  const residential=connectedHH*getNumber("usePerHH",2.5);
+  const commercial=residential*getNumber("commercialShare",25)/100;
+  const grossDemand=residential+commercial;
+  const demand=grossDemand*(1-getNumber("efficiency",20)/100);
+
+  const solarHH=households*getNumber("solarCoverage",40)/100;
+  const pvCapacity=solarHH*getNumber("pvCapacity",2.5);
+  const solarGeneration=pvCapacity*getNumber("solarYield",4.5);
+  const battery=pvCapacity*getNumber("batteryHours",6)/1000*1000;
+  const solarShare=demand>0?solarGeneration/demand*100:0;
+
+  return {
+    connectedHH,residential,commercial,grossDemand,demand,
+    annualMWh:demand*365/1000,
+    solarHH,pvCapacity,solarGeneration,battery,
+    solarShare
+  };
+}
+function calculateScenario() {
+  const s=scenarioValues();
+  if(!s) return;
+  $("kDaily").textContent=fmt(s.demand,0);
+  $("kAnnual").textContent=fmt(s.annualMWh,1);
+  $("kPV").textContent=fmt(s.pvCapacity,1);
+  $("kSolar").textContent=fmt(s.solarGeneration,0);
+  $("kBattery").textContent=fmt(s.battery,1);
+  $("kSolarShare").textContent=fmt(s.solarShare,1)+"%";
+  updateCharts(s);
+  saveLastAnalysis(s);
+}
+function updateCharts(s) {
+  chartUpdate("energyChart","bar",["Daily demand","Solar generation"],
+    [{label:"kWh / day",data:[s.demand,s.solarGeneration]}]);
+  chartUpdate("compositionChart","doughnut",["Residential","Commercial / public"],
+    [{label:"kWh / day",data:[s.residential,s.commercial]}]);
+  chartUpdate("populationChart","bar",["Population","Households"],
+    [{label:"Persons / households",data:[state.population,state.households]}]);
+  chartUpdate("indicatorChart","bar",
+    ["Electrification","Solar coverage","Solar share"],
+    [{label:"Percent",data:[
+      getNumber("electrification",75),
+      getNumber("solarCoverage",40),
+      Math.min(s.solarShare,100)
+    ]}]);
+}
+function chartUpdate(id,type,labels,datasets) {
+  const ctx=$(id).getContext("2d");
+  if(state.charts[id]) state.charts[id].destroy();
+  state.charts[id]=new Chart(ctx,{
+    type,
+    data:{labels,datasets:datasets.map(ds=>({
+      ...ds,backgroundColor:type==="doughnut"
+        ? ["#35c6d8","#f0a54a","#48cf9b"]
+        : ["#35c6d8","#48cf9b"],
+      borderColor:"#233c53",borderWidth:1,
+      borderRadius:type==="bar"?4:0
+    }))},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:type==="doughnut",labels:{color:"#bdcddd",font:{size:9}}}},
+      scales:type==="doughnut"?{}:{
+        x:{ticks:{color:"#9eb0c4",font:{size:9}},grid:{display:false}},
+        y:{beginAtZero:true,ticks:{color:"#9eb0c4",font:{size:9}},grid:{color:"#26394f"}}
+      }
+    }
+  });
+}
+
+/* ---------------- RUN ANALYSIS ---------------- */
+async function runAnalysis() {
+  if(!state.selectedArea) {
+    alert("Select a region or district first.");
+    return;
+  }
+  $("runBtn").disabled=true;
+  $("analysisStatus").textContent="Requesting WorldPop population data...";
+  setStatus("sWorldPop","Requesting","wait");
+  setProgress(15);
+  try {
+    const year=Number($("yearSelect").value);
+    const result=await requestWorldPop(state.selectedArea,year);
+    state.population=result.population;
+    $("kPopulation").textContent=fmt(state.population);
+    setStatus("sWorldPop","Loaded • "+result.year,"ok");
+    setProgress(60);
+
+    const fallback=getNumber("hhSize",9.2);
+    state.householdSize=householdSizeForArea(fallback);
+    state.households=state.population/state.householdSize;
+    $("kHouseholds").textContent=fmt(state.households);
+    setStatus("sHouseholds","Estimated","info");
+
+    state.areaKm2=turf.area(state.selectedArea)/1e6;
+    $("kArea").textContent=fmt(state.areaKm2,1);
+    $("kDensity").textContent=state.areaKm2>0
+      ?fmt(state.population/state.areaKm2,1):"—";
+
+    $("analysisStatus").textContent=
+      "Analysis complete. Population: "+fmt(state.population)+
+      " • Estimated households: "+fmt(state.households)+
+      " • Household size parameter: "+state.householdSize;
+    setProgress(100);
+    calculateScenario();
+    saveLastAnalysis();
+  } catch(e) {
+    console.error(e);
+    setStatus("sWorldPop","Unavailable","bad");
+    $("analysisStatus").textContent=
+      "WorldPop request failed: "+e.message+
+      ". Check the API connection and try again. No population value has been fabricated.";
+    setProgress(0);
+  } finally {
+    $("runBtn").disabled=false;
+  }
+}
+function saveLastAnalysis(scenario) {
+  if(!state.selectedArea) return;
+  state.lastAnalysis={
+    area:state.selectedDistrict?featureName(state.selectedDistrict,"district"):
+      state.selectedRegion?featureName(state.selectedRegion,"region"):"The Gambia",
+    year:Number($("yearSelect").value),
+    population:state.population,
+    householdSize:state.householdSize,
+    estimatedHouseholds:state.households,
+    areaKm2:state.areaKm2,
+    populationDensity:state.areaKm2&&state.population?state.population/state.areaKm2:null,
+    scenario:scenario||scenarioValues(),
+    puraNationalSalesKWh2023:puraSales[2023],
+    puraNationalSalesKWh2024:puraSales[2024],
+    buildings:state.buildings.length,
+    roadsKm:state.roads.reduce((a,b)=>a+b.lengthKm,0),
+    note:"Household counts are estimates. Energy values are scenarios, not measured NAWEC consumption."
+  };
+}
+
+/* ---------------- OSM DATA ----------------
+   The public OSM map endpoint is deliberately queried only for a
+   small bounding box around the selected area. This is not a complete
+   building or road inventory.
+------------------------------------------------ */
+function selectedOSMBounds() {
+  const bounds=turf.bbox(state.selectedArea);
+  const centerLon=(bounds[0]+bounds[2])/2;
+  const centerLat=(bounds[1]+bounds[3])/2;
+  const half=.035;
+  return [
+    Math.max(-180,centerLon-half),
+    Math.max(-90,centerLat-half),
+    Math.min(180,centerLon+half),
+    Math.min(90,centerLat+half)
+  ];
+}
+function xmlDirectTags(el) {
+  const out={};
+  Array.from(el.children||[]).forEach(child=>{
+    if(child.tagName==="tag") out[child.getAttribute("k")]=child.getAttribute("v");
+  });
+  return out;
+}
+async function requestOSM() {
+  if(!state.selectedArea) {
+    alert("Select a region or district before requesting OSM data.");
+    return null;
+  }
+  const b=selectedOSMBounds();
+  const bbox=b.map(x=>Number(x).toFixed(5)).join(",");
+  const url="https://api.openstreetmap.org/api/0.6/map?bbox="+bbox;
+  const res=await fetch(url,{headers:{"Accept":"application/xml"}});
+  if(!res.ok) throw new Error("OpenStreetMap API HTTP "+res.status);
+  const xmlText=await res.text();
+  const xml=new DOMParser().parseFromString(xmlText,"application/xml");
+  if(xml.querySelector("parsererror")) throw new Error("OSM XML could not be parsed");
+
+  const nodes=new Map();
+  xml.querySelectorAll("node").forEach(n=>{
+    nodes.set(n.getAttribute("id"),[
+      Number(n.getAttribute("lon")),Number(n.getAttribute("lat"))
+    ]);
+  });
+
+  const buildings=[];
+  const roads=[];
+  xml.querySelectorAll("way").forEach(w=>{
+    const tags=xmlDirectTags(w);
+    const refs=Array.from(w.children||[])
+      .filter(c=>c.tagName==="nd")
+      .map(n=>nodes.get(n.getAttribute("ref")))
+      .filter(Boolean);
+
+    if(refs.length<2) return;
+    const isBuilding=Boolean(tags.building);
+    const isRoad=Boolean(tags.highway);
+
+    if(isBuilding && refs.length>=4) {
+      const ring=[...refs];
+      const first=ring[0],last=ring[ring.length-1];
+      if(first[0]!==last[0]||first[1]!==last[1]) ring.push(first);
+      if(ring.length>=4) {
+        try {
+          const poly=turf.polygon([ring],{osm_id:w.getAttribute("id"),building:tags.building});
+          if(turf.booleanIntersects(poly,state.selectedArea)) buildings.push(poly);
+        } catch(e) {}
+      }
+    }
+    if(isRoad) {
+      try {
+        const line=turf.lineString(refs,{osm_id:w.getAttribute("id"),highway:tags.highway,name:tags.name||""});
+        if(turf.booleanIntersects(line,state.selectedArea)) {
+          roads.push({
+            feature:line,
+            lengthKm:turf.length(line,{units:"kilometers"})
+          });
+        }
+      } catch(e) {}
+    }
+  });
+  return {buildings,roads,bbox};
+}
+async function loadOSMBuildings() {
+  $("buildingsBtn").disabled=true;
+  setStatus("sBuildings","Requesting","wait");
+  try {
+    const data=await requestOSM();
+    if(!data) return;
+    state.buildings=data.buildings;
+    if(state.buildingLayer) map.removeLayer(state.buildingLayer);
+    state.buildingLayer=L.geoJSON({
+      type:"FeatureCollection",features:state.buildings
+    },{
+      style:{color:"#f0a54a",weight:.6,fillColor:"#f0a54a",fillOpacity:.45}
+    }).addTo(map);
+    $("kBuildings").textContent=fmt(state.buildings.length);
+    setStatus("sBuildings",fmt(state.buildings.length)+" sampled","ok");
+  } catch(e) {
+    console.warn(e);
+    setStatus("sBuildings","Unavailable","bad");
+    $("kBuildings").textContent="—";
+    $("analysisStatus").textContent="OSM buildings request failed: "+e.message;
+  } finally {$("buildingsBtn").disabled=false}
+}
+async function loadOSMRoads() {
+  $("roadsBtn").disabled=true;
+  setStatus("sRoads","Requesting","wait");
+  try {
+    const data=await requestOSM();
+    if(!data) return;
+    state.roads=data.roads;
+    if(state.roadLayer) map.removeLayer(state.roadLayer);
+    state.roadLayer=L.geoJSON({
+      type:"FeatureCollection",features:state.roads.map(x=>x.feature)
+    },{
+      style:{color:"#ef7169",weight:2.2,opacity:.9}
+    }).addTo(map);
+    const km=state.roads.reduce((a,b)=>a+b.lengthKm,0);
+    $("kRoads").textContent=fmt(km,2);
+    setStatus("sRoads",fmt(state.roads.length)+" sampled","ok");
+    saveLastAnalysis();
+  } catch(e) {
+    console.warn(e);
+    setStatus("sRoads","Unavailable","bad");
+    $("kRoads").textContent="—";
+    $("analysisStatus").textContent="OSM roads request failed: "+e.message;
+  } finally {$("roadsBtn").disabled=false}
+}
+
+/* ---------------- EXPORTS ---------------- */
+function downloadFile(name,content,type) {
+  const blob=new Blob([content],{type});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;a.download=name;
+  document.body.appendChild(a);a.click();a.remove();
+  URL.revokeObjectURL(url);
+}
+function exportObject() {
+  saveLastAnalysis();
+  return {
+    title:"GBoS GEOAI | Gambia Urban Energy Intelligence",
+    created:new Date().toISOString(),
+    analysis:state.lastAnalysis,
+    scenarioAssumptions:{
+      electricityUseKWhPerHouseholdDay:getNumber("usePerHH"),
+      commercialPublicDemandPercent:getNumber("commercialShare"),
+      electrificationCoveragePercent:getNumber("electrification"),
+      energyEfficiencyImprovementPercent:getNumber("efficiency"),
+      rooftopSolarCoveragePercent:getNumber("solarCoverage"),
+      pvCapacityPerHouseholdKWp:getNumber("pvCapacity"),
+      solarYieldKWhPerKWpDay:getNumber("solarYield"),
+      batteryAutonomyHours:getNumber("batteryHours")
+    },
+    dataQuality:{
+      population:"WorldPop API result, if successfully retrieved",
+      households:"Calculated estimate using GBoS mean household size",
+      buildings:"Optional partial OSM map extract",
+      roads:"Optional partial OSM map extract",
+      electricity:"PURA national electricity sales benchmark, not district NAWEC consumption"
+    }
+  };
+}
+$("csvBtn").addEventListener("click",()=>{
+  if(!state.lastAnalysis) {alert("Run the analysis first.");return}
+  const o=exportObject();
+  const rows=[
+    ["Indicator","Value","Unit / status"],
+    ["Area",o.analysis.area,"Selected administrative area"],
+    ["WorldPop reference year",o.analysis.year,"Year"],
+    ["Population",o.analysis.population,"Persons"],
+    ["Estimated households",o.analysis.estimatedHouseholds,"Estimate"],
+    ["Mean household size",o.analysis.householdSize,"Persons / household"],
+    ["Area",o.analysis.areaKm2,"km2"],
+    ["Population density",o.analysis.populationDensity,"Persons / km2"],
+    ["OSM buildings",o.analysis.buildings,"Sampled features"],
+    ["OSM road length",o.analysis.roadsKm,"Sampled km"],
+    ["Modelled daily electricity demand",o.analysis.scenario?.demand,"kWh/day"],
+    ["Modelled annual electricity demand",o.analysis.scenario?.annualMWh,"MWh/year"],
+    ["Scenario rooftop PV capacity",o.analysis.scenario?.pvCapacity,"kWp"],
+    ["Scenario solar generation",o.analysis.scenario?.solarGeneration,"kWh/day"],
+    ["Scenario battery storage",o.analysis.scenario?.battery,"kWh"],
+    ["PURA national sales 2023",puraSales[2023],"kWh"],
+    ["PURA national sales 2024",puraSales[2024],"kWh"]
+  ];
+  const csv=rows.map(r=>r.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(",")).join("\n");
+  downloadFile("GBoS_Gambia_Urban_Energy_Analysis.csv",csv,"text/csv;charset=utf-8");
+});
+$("jsonBtn").addEventListener("click",()=>{
+  if(!state.lastAnalysis) {alert("Run the analysis first.");return}
+  downloadFile("GBoS_Gambia_Urban_Energy_Analysis.json",
+    JSON.stringify(exportObject(),null,2),"application/json");
+});
+$("geojsonBtn").addEventListener("click",()=>{
+  if(!state.selectedArea) {alert("Select a region or district first.");return}
+  const out={
+    type:"FeatureCollection",
+    name:"GBoS_Selected_Administrative_Area",
+    features:[state.selectedArea]
+  };
+  downloadFile("GBoS_Selected_Area.geojson",JSON.stringify(out,null,2),"application/geo+json");
+});
+
+/* ---------------- EVENT HANDLERS ---------------- */
+$("regionSelect").addEventListener("change",e=>{
+  const i=e.target.value;
+  state.selectedRegion=i===""?null:state.regions.features[Number(i)];
+  state.selectedDistrict=null;
+  populateDistricts();
+  selectArea();
+  $("areaMessage").textContent=state.selectedRegion
+    ? "Selected: "+featureName(state.selectedRegion,"region")
+    : "Select a region or LGA.";
+});
+$("districtSelect").addEventListener("change",e=>{
+  const i=e.target.value;
+  if(i==="") state.selectedDistrict=null;
+  else {
+    const matches=districtsForRegion(state.selectedRegion)
+      .sort((a,b)=>featureName(a,"district").localeCompare(featureName(b,"district")));
+    state.selectedDistrict=matches[Number(i)]||null;
+  }
+  selectArea();
+  $("areaMessage").textContent=state.selectedDistrict
+    ?"Selected district: "+featureName(state.selectedDistrict,"district")
+    :"All districts in selected region.";
+});
+$("runBtn").addEventListener("click",runAnalysis);
+$("scenarioBtn").addEventListener("click",()=>{
+  if(!state.population||!state.households) {
+    alert("Run the population analysis first.");
+    return;
+  }
+  calculateScenario();
+  $("analysisStatus").textContent="Energy scenario recalculated using the current assumptions.";
+});
+$("buildingsBtn").addEventListener("click",loadOSMBuildings);
+$("roadsBtn").addEventListener("click",loadOSMRoads);
+$("resetBtn").addEventListener("click",()=>{
+  $("regionSelect").value="";
+  $("districtSelect").innerHTML='<option value="">Select a region first</option>';
+  $("districtSelect").disabled=true;
+  $("yearSelect").value="2025";
+  $("hhSize").value="9.2";
+  $("usePerHH").value="2.5";
+  $("commercialShare").value="25";
+  $("electrification").value="75";
+  $("efficiency").value="20";
+  $("solarCoverage").value="40";
+  $("pvCapacity").value="2.5";
+  $("solarYield").value="4.5";
+  $("batteryHours").value="6";
+
+  state.selectedRegion=null;
+  state.selectedDistrict=null;
+  state.selectedArea=state.national?.features?.[0]||null;
+  state.population=null;state.households=null;state.householdSize=null;
+  state.buildings=[];state.roads=[];state.lastAnalysis=null;
+  state.boundaryLayer.clearLayers();
+  if(state.buildingLayer) map.removeLayer(state.buildingLayer);
+  if(state.roadLayer) map.removeLayer(state.roadLayer);
+  state.buildingLayer=null;state.roadLayer=null;
+  if(state.selectedArea) {
+    state.boundaryLayer.addData(state.selectedArea);
+    fitFeature(state.selectedArea);
+  }
+  ["kPopulation","kHouseholds","kBuildings","kRoads","kDensity","kDaily","kAnnual","kPV","kSolar","kBattery","kSolarShare"].forEach(id=>$(id).textContent="—");
+  $("kArea").textContent="—";
+  $("analysisStatus").textContent="Reset complete. Select a region or district and run analysis.";
+  $("areaMessage").textContent="Select a region or LGA.";
+  $("mapAreaText").textContent="National overview • The Gambia";
+  setStatus("sWorldPop","Waiting","");
+  setStatus("sHouseholds","Waiting","");
+  setStatus("sBuildings","Not requested","");
+  setStatus("sRoads","Not requested","");
+  setProgress(0);
+  Object.values(state.charts).forEach(c=>c.destroy());
+  state.charts={};
+});
+
+/* ---------------- START ---------------- */
+(async function start() {
+  await initialiseBoundaries();
+  if(state.national) {
+    state.selectedArea=state.national.features[0];
+    try {state.areaKm2=turf.area(state.selectedArea)/1e6}
+    catch(e) {}
+    $("mapAreaText").textContent="National overview • The Gambia";
+  }
+  // District list can be prepared after both ADM1 and ADM2 are ready.
+  if(state.regions && state.districts) {
+    $("areaMessage").textContent="National, regional and district boundaries loaded. Select an area to begin.";
+  }
+  setProgress(0);
+})();
+</script>
+</body>
+</html>
