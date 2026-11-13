@@ -67,7 +67,7 @@ BEGIN
       'ea_name','lga','district','ward','geom','land_area_ha',
       'population_2013','population_2023','households_2013',
       'households_2023','source_name','source_year'
-    ]) AS key_name
+    ]) AS fields(key_name)
     WHERE (to_jsonb(NEW)->key_name) IS DISTINCT FROM (to_jsonb(OLD)->key_name);
     NEW.updated_at := now();
   END IF;
@@ -86,7 +86,7 @@ END $$;
 
 DROP TRIGGER IF EXISTS ea_change_trigger ON census.ea;
 CREATE TRIGGER ea_change_trigger
-AFTER INSERT OR UPDATE OR DELETE ON census.ea
+BEFORE INSERT OR UPDATE OR DELETE ON census.ea
 FOR EACH ROW EXECUTE FUNCTION census.capture_ea_change();
 
 -- A view for consistent dashboard summaries. Population growth is only computed
