@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>GBoS GEOAI | Gambia Urban Expansion & Land Use Efficiency</title>
+<title>GBoS GEOAI | Gambia Urban Growth & Built-up Intelligence</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
@@ -101,7 +101,7 @@ td,th{padding:8px;border-bottom:1px solid #e7edf2}
  <div class="brand">
   <div class="brand-icon"><i class="fa-solid fa-earth-africa"></i></div>
   <div>
-   <h1>GBoS GEOAI | GAMBIA URBAN EXPANSION & LAND USE EFFICIENCY</h1>
+   <h1>GBoS GEOAI | GAMBIA URBAN GROWTH & BUILT-UP INTELLIGENCE</h1>
    <p>GIS / CARTOGRAPHY UNIT • CENSUS AND BUILT-UP SPATIAL INTELLIGENCE</p>
   </div>
  </div>
@@ -144,15 +144,9 @@ td,th{padding:8px;border-bottom:1px solid #e7edf2}
 
   <div class="group">
    <label>Built-up analysis year</label>
-   <select id="builtYear">
-    <option value="2000">2000</option>
-    <option value="2005">2005</option>
-    <option value="2010">2010</option>
-    <option value="2015">2015</option>
-    <option value="2020" selected>2020</option>
-    <option value="2025">2025 – GHSL estimate</option>
-    <option value="2030">2030 – GHSL projection</option>
-   </select>
+   <select id="builtYear"><option value="1975">1975</option><option value="1980">1980</option><option value="1985">1985</option><option value="1990">1990</option><option value="1995">1995</option><option value="2000">2000</option><option value="2005">2005</option><option value="2010">2010</option><option value="2015">2015</option><option value="2020" selected>2020</option><option value="2025">2025 – modelled estimate</option><option value="2030">2030 – projection</option></select>
+  </div>
+  <div class="group"><label>Compare against year</label><select id="compareYear"><option value="1975">1975</option><option value="1980">1980</option><option value="1985">1985</option><option value="1990">1990</option><option value="1995">1995</option><option value="2000">2000</option><option value="2005">2005</option><option value="2010" selected>2010</option><option value="2015">2015</option><option value="2020">2020</option><option value="2025">2025</option><option value="2030">2030</option></select>
   </div>
 
   <div class="group">
@@ -167,10 +161,7 @@ td,th{padding:8px;border-bottom:1px solid #e7edf2}
 
   <div class="group">
    <label>Map display</label>
-   <select id="mapDisplay">
-    <option value="boundaries">EA boundaries</option>
-    <option value="builtup">Built-up statistics – EA shading</option>
-   </select>
+   <select id="mapDisplay"><option value="builtup" selected>Built-up area (ha) – EA map</option><option value="share">Built-up share (%)</option><option value="perperson">Built-up m² per person</option><option value="boundaries">EA boundaries</option></select>
   </div>
 
   <div class="subhead">SOURCE CONNECTIONS</div>
@@ -224,14 +215,14 @@ td,th{padding:8px;border-bottom:1px solid #e7edf2}
  <div class="section-title"><i class="fa-solid fa-chart-column"></i>02 / SPATIAL ANALYTICS</div>
  <div class="scroll">
 
-  <div class="subhead" style="margin-top:0">BUILT-UP AREA AND LAND-USE EFFICIENCY</div>
+  <div class="subhead" style="margin-top:0">BUILT-UP AREA AND LAND-USE EFFICIENCY</div><div class="status" id="estimateStatus">GHSL historical estimates and future scenarios are identified by year.</div>
   <div class="kpis">
    <div class="kpi"><div class="name">Built-up surface</div><div class="value" id="kBuiltHa">N/A</div><div class="unit">Hectares</div></div>
    <div class="kpi"><div class="name">Built-up share</div><div class="value" id="kBuiltPct">N/A</div><div class="unit">Of EA land area</div></div>
    <div class="kpi"><div class="name">Land area</div><div class="value" id="kLandHa">N/A</div><div class="unit">Hectares</div></div>
-   <div class="kpi"><div class="name">Built-up expansion</div><div class="value" id="kExpansion">N/A</div><div class="unit">Change from 2010 to 2020</div></div>
-   <div class="kpi"><div class="name">Built-up m² / person</div><div class="value" id="kPerPerson">N/A</div><div class="unit">2020 built-up surface</div></div>
-   <div class="kpi"><div class="name">Built-up m² / household</div><div class="value" id="kPerHousehold">N/A</div><div class="unit">2020 built-up surface</div></div>
+   <div class="kpi"><div class="name">Built-up change</div><div class="value" id="kExpansion">N/A</div><div class="unit" id="expansionUnit">Selected year vs comparison year</div></div>
+   <div class="kpi"><div class="name">Built-up m² / person</div><div class="value" id="kPerPerson">N/A</div><div class="unit">Selected year / 2023 census</div></div>
+   <div class="kpi"><div class="name">Built-up m² / household</div><div class="value" id="kPerHousehold">N/A</div><div class="unit">Selected year / 2023 census</div></div>
    <div class="kpi"><div class="name">People / built-up ha</div><div class="value" id="kPeopleDensity">N/A</div><div class="unit">Population intensity</div></div>
    <div class="kpi"><div class="name">Households / built-up ha</div><div class="value" id="kHHDensity">N/A</div><div class="unit">Household intensity</div></div>
   </div>
@@ -302,8 +293,7 @@ td,th{padding:8px;border-bottom:1px solid #e7edf2}
    GAMBIA URBAN EXPANSION & LAND-USE EFFICIENCY
    ========================================================== */
 
-const REPO =
- "https://raw.githubusercontent.com/silkysingz94-oss/Gambia-Urban-Expansion---Census-Intelligence/main/";
+const REPO = "https://raw.githubusercontent.com/silkysingz94-oss/Gambia-Urban-Expansion---Census-Intelligence/main/";
 
 const GEO_URL = REPO + "Census_EAs_Geo.json";
 const CENSUS_URL = REPO + "Census_2013_2023.csv";
@@ -633,13 +623,14 @@ $("resetBtn").addEventListener("click",()=>{
 
 $("basemap").addEventListener("change",e=>changeBasemap(e.target.value));
 $("mapBasemap").addEventListener("change",e=>changeBasemap(e.target.value));
-$("builtYear").addEventListener("change",updateAnalytics);
+$("builtYear").addEventListener("change",()=>{updateMap();updateAnalytics();});
+$("compareYear").addEventListener("change",updateAnalytics);
 $("mapDisplay").addEventListener("change",updateMap);
 
 /* MAP STYLING */
-function builtValue(p,year){
- return num(p["GHSL_BU_"+year+"_ha"]);
-}
+function builtValue(p,year){return num(p["GHSL_BU_"+year+"_ha"]);}
+function mapMetric(p,year,mode){if(mode==="share")return num(p["GHSL_BU_"+year+"_share_pct"]);if(mode==="perperson")return num(p["GHSL_BU_"+year+"_m2_per_person"]);return builtValue(p,year);}
+function metricColor(v,mode){if(v===null)return "#cbd5df";if(mode==="share"){if(v<=0)return "#f2f4f6";if(v<1)return "#e5f5e0";if(v<5)return "#a1d99b";if(v<15)return "#41ab5d";if(v<30)return "#238b45";return "#005a32";}if(mode==="perperson"){if(v<=0)return "#f2f4f6";if(v<25)return "#eff3ff";if(v<75)return "#bdd7e7";if(v<150)return "#6baed6";if(v<300)return "#3182bd";return "#08519c";}if(v<=0)return "#f2f4f6";if(v<1)return "#fee8a8";if(v<5)return "#f5b45e";if(v<20)return "#e77b42";return "#b93d3d";}
 
 function updateMap(){
  if(eaLayer)map.removeLayer(eaLayer);
@@ -654,21 +645,7 @@ function updateMap(){
  },{
   style:f=>{
    const p=f.properties||{};
-   const v=builtValue(p,year);
-   let fill="#e69a38";
-   if(mode==="builtup"&&v!==null){
-    if(v<=0)fill="#f2f4f6";
-    else if(v<1)fill="#fee8a8";
-    else if(v<5)fill="#f5b45e";
-    else if(v<20)fill="#e77b42";
-    else fill="#b93d3d";
-   }else if(mode==="boundaries"){
-    fill="#1675b9";
-   }
-   return{
-    color:"#30495f",weight:.7,opacity:.9,
-    fillColor:fill,fillOpacity:.58
-   };
+   const v=mapMetric(p,year,mode);const fill=mode==="boundaries"?"#1675b9":metricColor(v,mode);return{color:"#30495f",weight:.55,opacity:.9,fillColor:fill,fillOpacity:mode==="boundaries"?.25:.78};
   },
   onEachFeature:(f,layer)=>{
    const p=f.properties||{};
@@ -696,13 +673,7 @@ function updateMap(){
   if(b.isValid())map.fitBounds(b,{padding:[20,20],maxZoom:13});
  }catch(e){console.warn(e);}
 
- $("mapLegend").innerHTML=mode==="builtup"?
-  `<div><span class="swatch" style="background:#f2f4f6"></span>No built-up value / zero</div>
-   <div><span class="swatch" style="background:#fee8a8"></span>Below 1 ha</div>
-   <div><span class="swatch" style="background:#f5b45e"></span>1–5 ha</div>
-   <div><span class="swatch" style="background:#e77b42"></span>5–20 ha</div>
-   <div><span class="swatch" style="background:#b93d3d"></span>Above 20 ha</div>`:
-  `<div><span class="swatch" style="background:#1675b9"></span>Selected EA boundaries</div>`;
+ $("mapLegend").innerHTML=mode==="boundaries"?`<div><span class="swatch" style="background:#1675b9"></span>EA boundaries</div>`:mode==="share"?`<b>Built-up share • ${year}</b><div>0 / no value</div><div>0–1%</div><div>1–5%</div><div>5–15%</div><div>15–30%</div><div>>30%</div>`:mode==="perperson"?`<b>Built-up m²/person • ${year}</b><div>0 / no value</div><div><25</div><div>25–75</div><div>75–150</div><div>150–300</div><div>>300</div>`:`<b>Built-up area (ha) • ${year}</b><div>0 / no value</div><div><1 ha</div><div>1–5 ha</div><div>5–20 ha</div><div>>20 ha</div>`;
 }
 
 /* AGGREGATION */
@@ -743,21 +714,22 @@ function updateAnalytics(){
  const landHa=aggregateLandArea(f);
  const builtHa=aggregateBuilt(f,year);
 
- const built2020=aggregateBuilt(f,"2020");
- const built2010=aggregateBuilt(f,"2010");
+ const compareYear=$("compareYear").value;
+ const compareBuilt=aggregateBuilt(f,compareYear);
 
  const pop=sum(f,"Census_pop_23");
  const hh=sum(f,"Census_hhs_23");
  const hh13=sum(f,"Census_hhs_13");
 
  const builtShare=(builtHa!==null&&landHa>0)?builtHa/landHa*100:null;
- const expansion=(built2010!==null&&built2020!==null&&built2010>0)?
-  (built2020-built2010)/built2010*100:null;
-
- const perPerson=(built2020!==null&&pop>0)?built2020*10000/pop:null;
- const perHH=(built2020!==null&&hh>0)?built2020*10000/hh:null;
- const peoplePerHa=(built2020!==null&&built2020>0&&pop!==null)?pop/built2020:null;
- const hhPerHa=(built2020!==null&&built2020>0&&hh!==null)?hh/built2020:null;
+ const expansion=(compareBuilt!==null&&builtHa!==null&&compareBuilt>0)?(builtHa-compareBuilt)/compareBuilt*100:null;
+ const perPerson=(builtHa!==null&&pop>0)?builtHa*10000/pop:null;
+ const perHH=(builtHa!==null&&hh>0)?builtHa*10000/hh:null;
+ const peoplePerHa=(builtHa!==null&&builtHa>0&&pop!==null)?pop/builtHa:null;
+ const hhPerHa=(builtHa!==null&&builtHa>0&&hh!==null)?hh/builtHa:null;
+ const yearLabel=year==="2025"?"2025 modelled estimate":year==="2030"?"2030 projection":year+" GHSL epoch";
+ $("estimateStatus").textContent=yearLabel+" • GHSL built-up surface estimate. 2025 is modelled; 2030 is a projection. Historical GHSL epochs are model-derived reconstructions, not direct census observations.";
+ $("expansionUnit").textContent=year+" compared with "+compareYear;
 
  $("kBuiltHa").textContent=format(builtHa,2);
  $("kBuiltPct").textContent=builtShare===null?"N/A":format(builtShare,2)+"%";
@@ -768,7 +740,7 @@ function updateAnalytics(){
  $("kPeopleDensity").textContent=format(peoplePerHa,2);
  $("kHHDensity").textContent=format(hhPerHa,2);
 
- const years=["2000","2005","2010","2015","2020","2025","2030"];
+ const years=["1975","1980","1985","1990","1995","2000","2005","2010","2015","2020","2025","2030"];
  const builtSeries=years.map(y=>aggregateBuilt(f,y));
 
  chart("builtChart","bar",years,[{
@@ -803,9 +775,8 @@ function updateAnalytics(){
   ["Land area (ha)",landHa],
   ["Built-up area "+year+" (ha)",builtHa],
   ["Built-up share (%)",builtShare],
-  ["Built-up 2010 (ha)",built2010],
-  ["Built-up 2020 (ha)",built2020],
-  ["Built-up change 2010–2020 (%)",expansion],
+  ["Built-up area "+compareYear+" (ha)",compareBuilt],
+  ["Built-up change "+compareYear+"–"+year+" (%)",expansion],
   ["Census population 2023",pop],
   ["Census households 2023",hh],
   ["Census households 2013",hh13],
