@@ -28,7 +28,9 @@ listener_thread = None
 def db():
     if db_pool is None:
         raise RuntimeError("Database pool is not ready")
-    return db_pool.getconn()
+    conn = db_pool.getconn()
+    conn.autocommit = True
+    return conn
 
 def release(conn):
     if conn is not None and db_pool is not None:
