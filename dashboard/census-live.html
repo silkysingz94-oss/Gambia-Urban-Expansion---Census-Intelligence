@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GBoS GEOAI | Census Intelligence</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{--navy:#102a43;--blue:#1769aa;--teal:#087e8b;--bg:#eef3f7;--line:#dbe3ea;--muted:#65788a}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:#1b2b3a;font:14px Arial,sans-serif}
+header{background:var(--navy);color:white;padding:16px 22px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+header h1{font-size:19px;margin:0}header small{color:#c7d7e5}.status{border-radius:20px;padding:7px 11px;background:#6b7280;color:white;font-size:12px}
+.layout{display:grid;grid-template-columns:260px minmax(350px,1fr) 310px;gap:12px;padding:12px;height:calc(100vh - 68px)}
+.panel{background:white;border:1px solid var(--line);border-radius:10px;padding:14px;overflow:auto;min-height:0}
+.map-panel{padding:0;overflow:hidden;display:flex;flex-direction:column}.map-head{padding:12px 15px;border-bottom:1px solid var(--line);font-weight:bold}#map{flex:1;min-height:360px}
+h2{font-size:12px;letter-spacing:1px;color:var(--blue);margin:4px 0 13px}.field{margin-bottom:12px}label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}
+select,button{width:100%;padding:9px;border:1px solid var(--line);border-radius:6px;background:white;color:#243746}
+button{background:var(--blue);color:white;border:0;cursor:pointer;font-weight:bold}.kpis{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.kpi{background:#f5f8fb;border:1px solid var(--line);padding:11px;border-radius:8px}.kpi span{display:block;color:var(--muted);font-size:11px}.kpi strong{display:block;font-size:21px;margin-top:6px;color:var(--navy)}
+table{border-collapse:collapse;width:100%;font-size:12px}td,th{text-align:left;padding:8px 5px;border-bottom:1px solid var(--line)}th{color:var(--muted)}
+.muted{color:var(--muted);font-size:11px;line-height:1.5}.feed{max-height:270px;overflow:auto}.event{border-bottom:1px solid var(--line);padding:8px 0;font-size:12px}
+@media(max-width:950px){.layout{height:auto;grid-template-columns:1fr}.panel{max-height:420px}#map{height:60vh;flex:auto}.map-panel{min-height:500px}}
+</style></head><body>
+<header><div><h1>GBoS GEOAI | Census Intelligence</h1><small>PostgreSQL + PostGIS • Live census monitoring</small></div><div id="connection" class="status">Connecting…</div></header>
+<div class="layout">
+<aside class="panel"><h2>SPATIAL FILTERS</h2>
+<div class="field"><label>Local Government Area</label><select id="lga"><option value="">All LGAs</option></select></div>
+<div class="field"><label>District</label><select id="district"><option value="">All districts</option></select></div>
+<div class="field"><label>Ward</label><select id="ward"><option value="">All wards</option></select></div>
+<button id="refresh">Refresh dashboard</button><hr style="border:0;border-top:1px solid var(--line);margin:16px 0">
+<h2>DATABASE STATUS</h2><div class="muted" id="dbinfo">Waiting for API health check…</div>
+<p class="muted">Live changes are delivered from PostgreSQL NOTIFY events. A periodic refresh is retained as a recovery fallback.</p>
+</aside>
+<main class="panel map-panel"><div class="map-head">ENUMERATION AREA MAP <span class="muted" id="mapcount" style="float:right">Loading EAs…</span></div><div id="map"></div></main>
+<aside class="panel"><h2>NATIONAL CENSUS INDICATORS</h2>
+<div class="kpis">
+<div class="kpi"><span>Enumeration areas</span><strong id="eas">—</strong></div>
+<div class="kpi"><span>Mapped EAs</span><strong id="mapped">—</strong></div>
+<div class="kpi"><span>Population 2013</span><strong id="pop13">—</strong></div>
+<div class="kpi"><span>Population 2023</span><strong id="pop23">—</strong></div>
+<div class="kpi"><span>Households 2013</span><strong id="hh13">—</strong></div>
+<div class="kpi"><span>Households 2023</span><strong id="hh23">—</strong></div>
+</div><h2 style="margin-top:20px">POPULATION CHANGE</h2><div class="kpi"><span>2013–2023 change</span><strong id="growth">—</strong></div>
+<h2 style="margin-top:20px">RECENT DATABASE CHANGES</h2><div class="feed" id="feed"><div class="muted">No change events loaded.</div></div>
+<p class="muted">Produced by Ansu Singhateh | GIS Analyst | GIS / Cartography Unit | Gambia Bureau of Statistics<br>GBoS GEOAI • Research and educational use</p>
+</aside></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const API=(new URLSearchParams(location.search).get("api")||"http://localhost:8000").replace(/\/$/,"");
+const map=L.map("map").setView([13.45,-16.58],8);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(map);
+let layer=L.geoJSON(null,{style:f=>({color:"#294b68",weight:.55,fillColor:"#238bba",fillOpacity:.35}),onEachFeature:(f,l)=>{const p=f.properties||{};l.bindPopup("<b>EA "+(p.ea_code||"")+"</b><br>"+(p.ea_name||"") +"<br>"+(p.lga||"")+" / "+(p.district||"")+" / "+(p.ward||"")+"<hr>Population 2013: "+fmt(p.population_2013)+"<br>Population 2023: "+fmt(p.population_2023)+"<br>Households 2023: "+fmt(p.households_2023));}}).addTo(map);
+const $=id=>document.getElementById(id),fmt=v=>v==null?"N/A":Number(v).toLocaleString();
+async function api(path){const r=await fetch(API+path);if(!r.ok)throw new Error("API "+r.status+" "+await r.text());return r.json()}
+function setStatus(t,ok){$("connection").textContent=t;$("connection").style.background=ok?"#18794e":"#a34a36"}
+async function loadHealth(){try{const d=await api("/health");setStatus("DATABASE CONNECTED",true);$("dbinfo").textContent="PostGIS ready • "+d.database+" • "+d.server_time}catch(e){setStatus("DATABASE OFFLINE",false);$("dbinfo").textContent=e.message}}
+async function loadFilters(){const d=await api("/api/v1/filters");for(const [id,key,label] of [["lga","lga","All LGAs"],["district","district","All districts"],["ward","ward","All wards"]]){const el=$(id);el.innerHTML='<option value="">'+label+'</option>'+d[key].map(v=>'<option>'+esc(v)+'</option>').join("")}}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+async function loadSummary(){const d=await api("/api/v1/summary");$("eas").textContent=fmt(d.ea_count);$("mapped").textContent=fmt(d.mapped_eas);$("pop13").textContent=fmt(d.population_2013);$("pop23").textContent=fmt(d.population_2023);$("hh13").textContent=fmt(d.households_2013);$("hh23").textContent=fmt(d.households_2023);$("growth").textContent=d.population_change_pct==null?"N/A":d.population_change_pct.toFixed(2)+"%"}
+async function loadMap(){const q=new URLSearchParams();["lga","district","ward"].forEach(k=>{if($(k).value)q.set(k,$(k).value)});const g=await api("/api/v1/boundaries?"+q);layer.clearLayers();layer.addData(g);$("mapcount").textContent=(g.features||[]).length.toLocaleString()+" EAs";if(layer.getLayers().length&&!(q.toString()))map.fitBounds(layer.getBounds(),{padding:[10,10]})}
+async function loadChanges(){const d=await api("/api/v1/changes?limit=30");$("feed").innerHTML=d.length?d.map(x=>'<div class="event"><b>'+esc(x.operation)+"</b> • "+esc(x.record_key||"record")+"<br><span class='muted'>"+new Date(x.changed_at).toLocaleString()+" • "+esc((x.changed_fields||[]).join(", "))+"</span></div>").join(""):"<div class='muted'>No database changes recorded.</div>"}
+async function refresh(){try{await Promise.all([loadHealth(),loadSummary(),loadMap(),loadChanges()])}catch(e){setStatus("UPDATE ERROR",false);console.error(e)}}
+["lga","district","ward"].forEach(k=>$(k).addEventListener("change",loadMap));$("refresh").addEventListener("click",refresh);
+function connectLive(){const wsUrl=API.replace(/^http/,"ws")+"/api/v1/live";let ws;try{ws=new WebSocket(wsUrl)}catch(e){return}ws.onopen=()=>setStatus("LIVE UPDATES CONNECTED",true);ws.onmessage=e=>{let d;try{d=JSON.parse(e.data)}catch{return}if(d.type==="database_change"){loadSummary();loadMap();loadChanges()} };ws.onclose=()=>{setStatus("RECONNECTING…",false);setTimeout(connectLive,4000)};ws.onerror=()=>ws.close()}
+(async()=>{try{await loadFilters();await refresh();connectLive();setInterval(refresh,60000)}catch(e){setStatus("API NOT CONFIGURED",false);$("dbinfo").textContent=e.message}})();
+</script></body></html>
