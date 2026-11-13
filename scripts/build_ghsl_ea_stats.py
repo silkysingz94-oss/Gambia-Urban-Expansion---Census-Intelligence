@@ -64,8 +64,16 @@ def first_text(obj, names):
 
 def load_census(path):
     lookup = {}
-    with path.open("r", encoding="utf-8-sig", newline="") as f:
-        reader = csv.DictReader(f)
+    # The source CSV may be Windows-1252/ANSI rather than UTF-8. Try UTF-8
+    # first, then fall back to CP1252 so accented settlement names do not
+    # prevent the numeric EA attributes from being processed.
+    raw = path.read_bytes()
+    try:
+        decoded = raw.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        decoded = raw.decode("cp1252")
+    import io
+    reader = csv.DictReader(io.StringIO(decoded, newline=""))
         for row in reader:
             key = first_text(row, ["EA_code", "ea_code", "feacode", "FEACODE", "EA_CODE", "fsacode"])
             if key:
