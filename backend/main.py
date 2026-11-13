@@ -45,7 +45,7 @@ def listen_for_changes():
         conn = None
         try:
             conn = psycopg2.connect(DATABASE_URL)
-            conn.set_isolation_level psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT
+            conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
             with conn.cursor() as cur:
                 cur.execute("LISTEN census_data_changed;")
             while not listener_stop.is_set():
