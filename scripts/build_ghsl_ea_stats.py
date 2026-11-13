@@ -14,6 +14,8 @@ import sys
 from pathlib import Path
 
 import boto3
+from botocore import UNSIGNED
+from botocore.config import Config
 import numpy as np
 import rasterio
 from rasterio.features import geometry_mask
@@ -72,7 +74,7 @@ def load_census(path):
 
 def list_raster_keys():
     client = boto3.client("s3", region_name="eu-central-1",
-                          config=__import__("botocore").config.Config(signature_version="unsigned"))
+                          config=Config(signature_version=UNSIGNED))
     paginator = client.get_paginator("list_objects_v2")
     keys = []
     for page in paginator.paginate(Bucket=BUCKET, Prefix=PREFIX):
