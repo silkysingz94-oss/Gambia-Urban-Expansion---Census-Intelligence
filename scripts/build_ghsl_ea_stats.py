@@ -74,10 +74,10 @@ def load_census(path):
         decoded = raw.decode("cp1252")
     import io
     reader = csv.DictReader(io.StringIO(decoded, newline=""))
-        for row in reader:
-            key = first_text(row, ["EA_code", "ea_code", "feacode", "FEACODE", "EA_CODE", "fsacode"])
-            if key:
-                lookup[norm(key)] = row
+    for row in reader:
+        key = first_text(row, ["EA_code", "ea_code", "feacode", "FEACODE", "EA_CODE", "fsacode"])
+        if key:
+            lookup[norm(key)] = row
     return lookup
 
 def list_raster_keys():
